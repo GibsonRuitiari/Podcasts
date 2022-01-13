@@ -1,38 +1,39 @@
-import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonClass
-import com.squareup.moshi.Moshi
 import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.annotation.XmlAttribute
 import jakarta.xml.bind.annotation.XmlElement
 import jakarta.xml.bind.annotation.XmlRootElement
+import jakarta.xml.bind.annotation.XmlValue
 import java.nio.file.Paths
-import kotlin.system.measureTimeMillis
 
 fun main() {
-    val moshi by lazy { Moshi.Builder().build() }
-    val adapter:JsonAdapter<JsonResponse> = moshi.adapter(JsonResponse::class.java)
+//    val moshi by lazy { Moshi.Builder().build() }
+//    val adapter:JsonAdapter<JsonResponse> = moshi.adapter(JsonResponse::class.java)
+//
+//    val context by lazy { JAXBContext.newInstance(TestClass::class.java) }
+//    val unMarshaller= context.createUnmarshaller()
+//    ClassLoader.getSystemResourceAsStream("1.txt")?.use {
+//
+//            it.bufferedReader().use {
+//                    bf->
+//                val response =adapter.fromJson(bf.readText()) as JsonResponse
+//               //val safeSequence=response.results.asSequence().filter {resp-> !resp.feedUrl.isNullOrBlank() }
+//                val safeList = response.results.filter { !it.feedUrl.isNullOrBlank() }
+//               safeList.first().feedUrl?.let { _url->
+//                   URL(_url).openStream().use { _is->
+//                       val x=unMarshaller.unmarshal(_is) as TestClass
+//                       println(x)
+//                   }
+//               }
+//
+//            }
+//
+//    }
+   unMarshallItunesData()
+    val taggedString ="Before removing HTML Tags: <p><b>Welcome to Tutorials Point</b></p>\n" +
+            "After removing HTML Tags: Welcome to Tutorials Point"
+    println(taggedString.replace("<.*?>".toRegex(),""))
 
-
-    ClassLoader.getSystemResourceAsStream("1.txt")?.use {
-
-            it.bufferedReader().use {
-                    bf->
-                val response =adapter.fromJson(bf.readText()) as JsonResponse
-                val safeSequence=response.results.asSequence().filter {resp-> !resp.feedUrl.isNullOrBlank() }
-                val safeList = response.results.filter { !it.feedUrl.isNullOrBlank() }
-                val sequenceMillis=measureTimeMillis {
-                    println("sequence size: ${response.results.asSequence().filter { resp -> !resp.feedUrl.isNullOrBlank() }.count()}")
-                }
-                val listMillis = measureTimeMillis {
-                    println("list size: ${response.results.filter { !it.feedUrl.isNullOrBlank() }.size}")
-                }
-                println("sequence operation time: $sequenceMillis")
-                println("list millis operation time: ${listMillis}")
-
-
-            }
-
-    }
 }
 
 @JsonClass(generateAdapter = true)
@@ -52,9 +53,9 @@ data class ItunesPodcasts(@field:XmlElement(name="title")val podcastTitle:String
                           @field:XmlElement(name="image")val podcastImage:PodcastImage?=null)
 
 @XmlRootElement
-data class PodcastItems(@field:XmlElement(name="title")val episodeTitle:String?=null,
-                        @field:XmlElement(name="description")val episodeDescription:String?=null,
-                        @field:XmlElement(name="guid") val guid:String?=null,
+data class PodcastItems(@field:XmlElement(name="title", type = String::class)val episodeTitle:String?=null,
+                        @field:XmlElement(name="description", type = String::class)val episodeDescription:String?=null,
+                        @field:XmlElement(name="guid") val guid:Guid?=null,
                         @field:XmlElement(name="pubDate")val publishedDate:String?=null,
                         @field:XmlElement(name="enclosure")val enclosure:Enclosure?=null)
 
@@ -63,7 +64,8 @@ data class Enclosure(@field:XmlAttribute val url:String?=null,
                      @field:XmlAttribute val length:String?=null,
                      @field:XmlAttribute val type:String?=null)
 
-
+@XmlRootElement
+data class Guid(@field:XmlValue val link:String?=null, @field:XmlAttribute(name="isPermaLink") val isPermanentLink:Boolean?=null)
 @XmlRootElement
 data class PodcastImage(@field:XmlElement(name="url") val imageUrl:String?=null)
 
@@ -73,8 +75,16 @@ data class TestClass(@field:XmlElement(name="channel")val itunesLink:ItunesPodca
 private fun unMarshallItunesData(){
     val context by lazy { JAXBContext.newInstance(TestClass::class.java) }
     val unMarshaller= context.createUnmarshaller()
-    val source by lazy { Paths.get(System.getProperty("user.dir"),"src/main/resources/podcast.xml") }
+    val source by lazy { Paths.get(System.getProperty("user.dir"),"src/main/resources/test.xml") }
     val podcasts= unMarshaller.unmarshal(source.toFile()) as TestClass
-    println("link: ${podcasts.itunesLink}")
+    println("podcast title: ${podcasts.itunesLink?.podcastTitle}")
+    println("description: ${podcasts.itunesLink?.description?.replace("<.*?>".toRegex(), "")}")
+    podcasts.itunesLink?.list?.onEach { it.episodeDescription?.replace("<.*?>".toRegex(),"") }?.forEach {
+        println("episode title ---> ${it.episodeTitle}")
+        println("episode desc ---> ${it.episodeDescription}")
+        println("episode datePublished ---> ${it.publishedDate}")
+        println("episode gui ---> ${it.guid?.link}")
+        println()
+    }
 
 }
