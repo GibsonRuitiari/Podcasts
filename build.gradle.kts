@@ -2,6 +2,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.5.10"
+    kotlin("plugin.serialization") version "1.5.10"
+
     id("com.google.devtools.ksp").version("1.6.0-1.0.1")
     application
 }
@@ -23,6 +25,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0-native-mt")
     implementation("com.squareup.moshi:moshi:1.13.0")
     implementation ("org.apache.commons:commons-text:1.9")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+
+
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.13.0")
     testImplementation(kotlin("test"))
 }
