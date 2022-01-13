@@ -22,6 +22,7 @@ dependencies {
     implementation("com.squareup.okhttp:logging-interceptor:2.7.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0-native-mt")
     implementation("com.squareup.moshi:moshi:1.13.0")
+    implementation ("org.apache.commons:commons-text:1.9")
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.13.0")
     testImplementation(kotlin("test"))
 }
