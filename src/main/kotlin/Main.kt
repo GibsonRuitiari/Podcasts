@@ -1,41 +1,75 @@
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
 import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.annotation.XmlAttribute
 import jakarta.xml.bind.annotation.XmlElement
 import jakarta.xml.bind.annotation.XmlRootElement
 import jakarta.xml.bind.annotation.XmlValue
+import org.apache.commons.text.StringEscapeUtils
+import java.net.URL
+
 import java.nio.file.Paths
 
 fun main() {
-//    val moshi by lazy { Moshi.Builder().build() }
-//    val adapter:JsonAdapter<JsonResponse> = moshi.adapter(JsonResponse::class.java)
-//
-//    val context by lazy { JAXBContext.newInstance(TestClass::class.java) }
-//    val unMarshaller= context.createUnmarshaller()
-//    ClassLoader.getSystemResourceAsStream("1.txt")?.use {
-//
-//            it.bufferedReader().use {
-//                    bf->
-//                val response =adapter.fromJson(bf.readText()) as JsonResponse
-//               //val safeSequence=response.results.asSequence().filter {resp-> !resp.feedUrl.isNullOrBlank() }
-//                val safeList = response.results.filter { !it.feedUrl.isNullOrBlank() }
-//               safeList.first().feedUrl?.let { _url->
-//                   URL(_url).openStream().use { _is->
-//                       val x=unMarshaller.unmarshal(_is) as TestClass
-//                       println(x)
-//                   }
-//               }
-//
-//            }
-//
-//    }
-   unMarshallItunesData()
-    val taggedString ="Before removing HTML Tags: <p><b>Welcome to Tutorials Point</b></p>\n" +
-            "After removing HTML Tags: Welcome to Tutorials Point"
-    println(taggedString.replace("<.*?>".toRegex(),""))
+    // test urls
+    val feedBurnerUrl="http://feeds.feedburner.com/dancarlin/history?format=xml" // apparently it works
+    val rssUrls= "https://rss.art19.com/the-history-chicks" // works
+    val xmlUrls ="https://feed.podbean.com/darkhistories/feed.xml" // works
+    val context by lazy { JAXBContext.newInstance(TestClass::class.java) }
+    val unMarshaller= context.createUnmarshaller()
+    URL(rssUrls).openStream().use {
+        val testC=unMarshaller.unmarshal(it) as TestClass
+        val title = testC.itunesLink?.podcastTitle!!
+        println("podcast title: $title")
+        val description = testC.itunesLink.description?.cleanData()
+        println("description: ${description}")
+        testC.itunesLink.list?.forEach {
+            val episodeDescription=it.episodeDescription.cleanData()
+            println("episode title--> ${it.episodeTitle.cleanData()}")
+            println("published date---> ${it.publishedDate}")
+            println("episode description--> ${episodeDescription}")
+        }
+    }
 
+
+    }
+private fun xmlFetcherAndParser(){
+    val moshi by lazy { Moshi.Builder().build() }
+    val adapter: JsonAdapter<JsonResponse> = moshi.adapter(JsonResponse::class.java)
+
+    val context by lazy { JAXBContext.newInstance(TestClass::class.java) }
+    val unMarshaller= context.createUnmarshaller()
+    ClassLoader.getSystemResourceAsStream("1.txt")?.use {
+        it.bufferedReader().use {
+                bf->
+            val response =adapter.fromJson(bf.readText()) as JsonResponse
+            //val safeSequence=response.results.asSequence().filter {resp-> !resp.feedUrl.isNullOrBlank() }
+            val safeList = response.results.filter { !it.feedUrl.isNullOrBlank() }
+            safeList.last().feedUrl?.let { _url->
+                URL(_url).openStream().use { _is->
+                    val podcasts=unMarshaller.unmarshal(_is) as TestClass
+                    val title = podcasts.itunesLink?.podcastTitle!!
+                    println("podcast title: $title")
+                    val description = podcasts.itunesLink.description?.cleanData()
+                    println("description: ${description}")
+                    podcasts.itunesLink.list?.forEach {
+                        val episodeDescription=it.episodeDescription.cleanData()
+                        println("episode title--> ${it.episodeTitle.cleanData()}")
+                        println("published date---> ${it.publishedDate}")
+                        println("episode description--> ${episodeDescription}")
+                    }
+                }
+            }
+        }
+
+    }
 }
-
+private  fun String?.cleanData():String?{
+    return this?.replace("<.*?>".toRegex(), "")
+        ?.replace("\n", "")?.replace(">s+<".toRegex(), "")
+        ?.replace("\t", "")?.replace("\r", "")
+}
 @JsonClass(generateAdapter = true)
 data class JsonResponse(val resultCount:Int, val results:List<Results>)
 
