@@ -6,9 +6,9 @@ import java.util.*
 
 @XmlRootElement
 class EpisodeEnclosure {
-    @get:XmlAttribute(name = "url") val episodeMediaUrl:String?=null
-    @get:XmlAttribute(name = "length") val episodeLength:String?=null
-    @get:XmlAttribute(name="type")val episodeMediaType:String?=null
+    @get:XmlAttribute(name = "url") var episodeMediaUrl:String?=null
+    @get:XmlAttribute(name = "length") var episodeLength:String?=null
+    @get:XmlAttribute(name="type")var episodeMediaType:String?=null
     override fun hashCode(): Int {
         return Objects.hash(episodeLength,episodeMediaUrl,
         episodeMediaType)

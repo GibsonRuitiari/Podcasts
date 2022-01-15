@@ -1,4 +1,4 @@
-package config.network
+package config.backend
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -14,40 +14,31 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import models.EmptyResponseError
 import models.ItunesResponse
 import models.ItunesResult
-import models.results.ErrorResult
-import models.results.Result
-import models.results.Success
+import models.wrapper.ErrorResult
+import models.wrapper.Result
+import models.wrapper.Success
+import models.wrapper.PodcastResultWrapper
 import okhttp3.*
 import java.io.IOException
 import java.time.Duration
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-
-data class PodcastResultWrapper<T>(val data:T?=null, val message:String?=null)
-
-inline fun<reified T> podcastClient(noinline builder: PodcastClientBuilder.()->Unit):T{
-    return initializeNetworkConfig(PodcastClientBuilder(),builder).build()
-}
- inline fun<T,R> initializeNetworkConfig(config:T, configCreator:T.()->R):T{
-    config.configCreator()
-    return config
-}
- class PodcastClientBuilder{
-    var readTimeout:Duration = Duration.ofSeconds(1000)
-    var writeTimeout:Duration = Duration.ofSeconds(1000)
-    var searchTerm =""
-}
- inline fun<reified T:NetworkConfig>PodcastClientBuilder.build():T{
-    return when(T::class){
-        PodcastClient::class->{
-            PodcastClient(searchTerm, readTimeout, writeTimeout) as T
-        }
-        else->throw IllegalArgumentException("Class provided ${T::class} is not an instance of network config")
-    }
-}
-// represents a network client that can be configured by the client
- class PodcastClient(override val searchTerm: String, override val readTimeout: Duration, override val writeTimeout: Duration): NetworkConfig{
+/**
+ *This class represents the entry point for the client
+ * When they want to get podcasts based on a certain term, they can configure the search term,
+ * read time and write time out.
+ * Example usage
+ ```
+val client=podcastClient<PodcastClient> {
+readTimeout= Duration.ofSeconds(3000)
+searchTerm="History"
+  }
+// viola
+client.podcasts
+ ```
+ */
+ class PodcastClient(override val searchTerm: String, override val readTimeout: Duration, override val writeTimeout: Duration): PodcastClientConfig{
     private val client by lazy {
         OkHttpClient.Builder()
     }
@@ -70,7 +61,7 @@ inline fun<reified T> podcastClient(noinline builder: PodcastClientBuilder.()->U
        return podcastClient.newCall(request)
     }
      @OptIn(ExperimentalCoroutinesApi::class)
-     private suspend fun returnWrappedItunesResponse():Result<List<ItunesResponse>>{
+     private suspend fun returnWrappedItunesResponse(): Result<List<ItunesResponse>> {
          val call=podcastNetworkClient { queryParam->
              Interceptor {chain -> var newRequest =chain.request()
                  val url = newRequest.url.newBuilder().addQueryParameter("term",queryParam).build()
@@ -91,13 +82,12 @@ inline fun<reified T> podcastClient(noinline builder: PodcastClientBuilder.()->U
                                  val body = response.body!!
                                  val itunesResultResponse=itunesResultAdapter.fromJson(body.source())
                                  itunesResultResponse?.let {
-                                     println("log: result count: ${it.results}")
                                      continuation.resume(Success(it.results)){
                                          body.close()
                                      }
                                  }
                              }else{
-                                 val emptyResult=ErrorResult<List<ItunesResponse>>(throwable = EmptyResponseError("The api response was empty"))
+                                 val emptyResult= ErrorResult<List<ItunesResponse>>(throwable = EmptyResponseError("The api response was empty"))
                                  continuation.resume(emptyResult)
                              }
                          }
@@ -123,5 +113,5 @@ inline fun<reified T> podcastClient(noinline builder: PodcastClientBuilder.()->U
 
      // expose this to the client
      val podcasts = podcastsResponse()
-
 }
+
