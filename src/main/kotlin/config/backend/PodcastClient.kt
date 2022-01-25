@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalContracts::class, ExperimentalCoroutinesApi::class)
+
 package config.backend
 
 import com.squareup.moshi.JsonAdapter
@@ -21,6 +23,7 @@ import models.wrapper.PodcastResultWrapper
 import okhttp3.*
 import java.io.IOException
 import java.time.Duration
+import kotlin.contracts.ExperimentalContracts
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -60,7 +63,6 @@ client.podcasts
             .build()
        return podcastClient.newCall(request)
     }
-     @OptIn(ExperimentalCoroutinesApi::class)
      private suspend fun returnWrappedItunesResponse(): Result<List<ItunesResponse>> {
          val call=podcastNetworkClient { queryParam->
              Interceptor {chain -> var newRequest =chain.request()
@@ -78,15 +80,17 @@ client.podcasts
                  override fun onResponse(call: Call, response: Response) {
                      when{
                          response.isSuccessful->{
-                             if (response.body!=null){
-                                 val body = response.body!!
-                                 val itunesResultResponse=itunesResultAdapter.fromJson(body.source())
-                                 itunesResultResponse?.let {
-                                     continuation.resume(Success(it.results)){
-                                         body.close()
-                                     }
+                             if (!response.body.isNull()){
+                                 response.body?.let { body->
+                                     val jsonResponse=itunesResultAdapter.fromJson(body.source())
+                                    jsonResponse?.let {
+                                        continuation.resume(Success(it.results)){
+                                            body.close()
+                                        }
+                                    }
                                  }
-                             }else{
+                             }
+                            else{
                                  val emptyResult= ErrorResult<List<ItunesResponse>>(throwable = EmptyResponseError("The api response was empty"))
                                  continuation.resume(emptyResult)
                              }
@@ -96,6 +100,7 @@ client.podcasts
              })
          }
      }
+
      // observable list of itunes response
      private fun podcastsResponse():Flow<PodcastResultWrapper<List<ItunesResponse>>> = flow{
          emit(PodcastResultWrapper(returnWrappedItunesResponse().getOrThrow()))

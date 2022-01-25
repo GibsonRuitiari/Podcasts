@@ -1,3 +1,3 @@
 package config.constants
 
-internal const val applePodcastLink="https://itunes.apple.com/search?media=podcast&entity=podcast&limit=150" //add param qeury &term=History
+internal const val applePodcastLink="https://itunes.apple.com/search?media=podcast&entity=podcast&limit=150"

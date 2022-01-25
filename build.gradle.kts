@@ -18,13 +18,14 @@ repositories {
 dependencies {
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:3.0.1")
     implementation("com.sun.xml.bind:jaxb-impl:3.0.2")
-    implementation("com.github.ajalt.mordant:mordant:2.0.0-beta4")
-    implementation("com.github.ajalt.clikt:clikt:3.3.0")
+   // implementation("com.github.ajalt.mordant:mordant:2.0.0-beta4")
+ //   implementation("com.github.ajalt.clikt:clikt:3.3.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.squareup.okhttp:logging-interceptor:2.7.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.6.0-native-mt")
     implementation("com.squareup.moshi:moshi:1.13.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    testImplementation("com.google.truth:truth:1.1.3")
 
 
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.13.0")

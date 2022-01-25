@@ -20,10 +20,15 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.time.ExperimentalTime
 
+/**
+ * Client involved in fetching and parsing rss given a feed url
+ */
 class RssClient(override val rssFeedUrl: String, override val readTimeOut: Duration,
                 override val context: JAXBContext, override val cacheDuration: kotlin.time.Duration ):RssClientConfig {
     private val client by lazy { OkHttpClient.Builder() }
-    private val url by lazy { rssFeedUrl }
+    private val url by lazy {
+        require(rssFeedUrl.isNotEmpty() or rssFeedUrl.isNotBlank()) {" rss feed url cannot be empty or blank!"}
+        rssFeedUrl }
     private val jaxbContext by lazy { context }
     private val unMarshaller = jaxbContext.createUnmarshaller()
     private  fun rssNetworkClientCall(): Call {
@@ -35,7 +40,7 @@ class RssClient(override val rssFeedUrl: String, override val readTimeOut: Durat
             .build()
         return rssNetworkClient.newCall(request)
     }
-    // removes xml tags from the description
+    // removes xml tags from the texts
     private  fun String?.cleanData():String?{
         return this?.replace("<.*?>".toRegex(), "")
             ?.replace("\n", "")?.replace(">s+<".toRegex(), "")
@@ -45,16 +50,14 @@ class RssClient(override val rssFeedUrl: String, override val readTimeOut: Durat
             val call = rssNetworkClientCall()
             call.enqueue(object:Callback{
                 override fun onResponse(call: Call, response: Response) {
-                   if (response.isSuccessful && response.body!=null){
-                       val body = response.body!!
-                       body.let {
-                           it.source().inputStream().use {_is->
+                   if (response.isSuccessful && !response.body.isNull()){
+                           response.body?.source()?.inputStream().use {
+                                   _is->
                                val rssResults=unMarshaller.unmarshal(_is) as RssResults
                                rssResults.itunesLink?.let { pod->
                                    continuation.resume(Success(pod))
                                }
                            }
-                       }
                    }else{
                        // body is null due to some reason
                        val errMessage = response.message
@@ -67,6 +70,12 @@ class RssClient(override val rssFeedUrl: String, override val readTimeOut: Durat
                 }
             })
         }
+
+    /**
+     * Builds a Json string from the rss feeds response
+     * This method is "cleaner" than direct serialization of the rss feeds response
+     * data classes
+     */
     private suspend fun rssFeedsToJson():String{
       return try {
           returnWrappedRssResponseResult().getOrThrow()
@@ -98,7 +107,7 @@ class RssClient(override val rssFeedUrl: String, override val readTimeOut: Durat
           return Json.encodeToString(json)
       }catch (ex:Exception){
                  val obj=buildJsonObject {
-                     put("error",false)
+                     put("error",true)
                      put("errorMessage",  ex.message)
                      put("podcastTitle","")
                      put("podcastDescription","")
@@ -111,6 +120,8 @@ class RssClient(override val rssFeedUrl: String, override val readTimeOut: Durat
 
       }
      // cached rss feeds in form of json + and expires in 30 minutes
+    // exposed to the client
+     @OptIn(ExperimentalTime::class)
      val jsonifiedRssFeeds = ::rssFeedsToJson.memoize(expiration = cacheDuration)
     }
 
