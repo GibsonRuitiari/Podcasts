@@ -26,6 +26,11 @@ val client = rssClient<RssClient> {
    ```
 And that its it! 😁
 
+## **Todo**
+
+- ~~Add Tests  📌~~
+- Turn the rss feeds endpoint into an api using httpUrl/ktor library 📌
+
 
 Building
 --------
